@@ -48,7 +48,30 @@ class Formula:
 
     def __repr__(self):
         """Representación en cadena, legible para humanos, de las fórmulas."""
-        return ""
+        # Si no hay algun conectivo, entonces significa que es una variable proposicional,
+        # Segun el constructor, en este caso self.izquierda almacena el numero de la variable.
+        # Asi, se regresa un string "xn".
+        if self.conectivo is None:
+            return f"x{self.izquierda}"
+        # Si el conectivo es N, entonces es una negacion.
+        # De esta forma, se hace una llamada recursiva para obtener su representacion, se añaden
+        # parentesis y se agrega el simbolo de negacion 
+        elif self.conectivo == 'N':
+            return f"(¬{repr(self.izquierda)})"
+        else:
+            # Se realizan varios casos dependiendo del conectivo, para saber que simbolo se usara.
+            # Luego, se hacen dos llamadas recursivas para obtener las representaciones de
+            # izquierda y derecha, para poner el simbolo en medio.
+            simbolo = ''
+            if self.conectivo == 'C':
+                simbolo = '∧'
+            if self.conectivo == 'D':
+                simbolo = '∨'
+            if self.conectivo == 'I':
+                simbolo = '→'
+            if self.conectivo == 'B':
+                simbolo = '↔'
+            return f"({repr(self.izquierda)} {simbolo} {repr(self.derecha)})"
 
     def lista_variables(self):
         """Devuelve la lista de todas las variables de una fórmula en orden.
@@ -131,13 +154,49 @@ class Formula:
         x2 = True
         x5 = True
         """
-        return False
+        # Funcion auxiliar que realiza la logica recursiva.
+        # De igual forma, si no hay conectivo, llegamos a una variable proposicional. Asi, izquierda almacena
+        # un entero que es el numero de variable proposicional.
+        # Luego, busca en que posicion esta el numero dentro de la lista "posiciones", y regresa su asignacion
+        # en ese indice.
+        if self.conectivo is None:
+            return asignacion[posiciones.index(self.izquierda)]
+        # Si el conector es una negacion, entonces se realiza una llamada recursiva para saber el valor de verdad
+        # del elemento izquierda, para posteriormente negarlo con not.
+        elif self.conectivo == 'N':
+            return not self.izquierda._evalua_aux(asignacion, posiciones)
+        else:
+            # Se definen variables izq y der para simplificar el proceso de asignacion de verdad.
+            # Para ambas variables se realizan llamadas recursivas para obtener a grandes rasgos los valores
+            # de las formulas o variables que esten a la izquierda y derecha del conectivo.
+            # Se regresa un valor de verdad final de la formula.
+            izq = self.izquierda._evalua_aux(asignacion, posiciones)
+            der = self.derecha._evalua_aux(asignacion, posiciones)
+
+            if self.conectivo == 'C':
+                # Conjuncion (And)
+                return izq and der
+            elif self.conectivo == 'D':
+                # Disyuncion (Or)
+                return izq or der
+            elif self.conectivo == 'I':
+                # Implicacion, utilizando la equivalencia P->Q == !P o Q
+                return (not izq) or der
+            elif self.conectivo == 'B':
+                # Bicondicional, sabiendo que solo regresa true cuando P == V y Q == V o P == F y Q == F, o sea,
+                # son iguales.
+                # De otra forma, se pueden unir con And las implicaciones de P->Q y Q->P.
+                return izq == der
 
     def evalua(self, asignacion: Asignacion):
         """Devuelve el valor de verdad de la fórmula bajo una asignación dada,
         que recibe como entrada en la forma de una lista de booleanos.
         """
-        return False
+        # Se realiza una llama a la funcion lista_variables definida previamente para obtener una lista
+        # ordenada de cada numero de variable proposicional.
+        posiciones = self.lista_variables()
+        # Asi, se manda a la funcion auxiliar la lista de posiciones con su respectiva asignacion de verdad.
+        return self._evalua_aux(asignacion, posiciones)
 
     def aplana(self):
         """Devuelve una lista con la versión aplanada (inorden) del árbol de
